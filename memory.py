@@ -49,10 +49,12 @@ def open_presentation(ppt_index):
     """
     global pptno
     pptno=ppt_index
+
     global slideno
     slideno=0
     global filenames
     print filenames
+    print ppt_index
     presentation_url_file=presentation_url+filenames[int(ppt_index)-1]
     s="libreoffice --show "+presentation_url_file+" --norestore --nolockcheck"
     print s
@@ -64,7 +66,7 @@ def open_presentation(ppt_index):
 def current_details_intent():
     global slideno
     global pptno
-    return statement("Current Slide Number is "+str(slideno))
+    return statement("Current Slide Number is "+str(slideno+1))
 
 @ask.intent("ListIntent")
 
@@ -95,6 +97,7 @@ def next_slide(no_slides_right):
     i=0
     
     global slideno
+    slideno=slideno+1
     s="xdotool search --name 'Impress' key --delay 1000 Right"
     for i in range(1,int(no_slides_right)):
         s=s+" Right"
@@ -111,6 +114,7 @@ def prev_slide(no_slides_left):
     x=slideno-int(no_slides_left)
     if x>=0:
         s="xdotool search --name 'Impress' key --delay 1000 Left"
+        slideno=slideno-1
         for i in range(1,int(no_slides_left)):
             s=s+" Left"
             slideno=slideno-1
@@ -118,6 +122,75 @@ def prev_slide(no_slides_left):
         return statement("Moved")
     else:
         return statement("Cannot Move sorry")
+
+
+
+
+
+
+
+
+
+
+
+
+@ask.intent("IntroIntent" , mapping={'action': 'Action'})
+
+def next_round(action):
+	print ("my action is ----> " + action)
+	session.attributes['Action'] = action
+	session.attributes['callFirst']=0
+	session.attributes['wordP']=''
+	session.attributes['type']='simple'
+	session.attributes['difficult word']=[]
+	session.attributes['attempt']=1
+	session.attributes['slp']=1
+	session.attributes['mlp']=1
+	session.attributes['clp']=1
+	session.attributes['rlp']=1
+	session.attributes['dlp']=1
+	return question('name of the file?')
+	
+@ask.intent("filenameIntent" , mapping={'filename': 'filename'})
+
+def number_word(filename):
+	session.attributes['filename'] = filename
+	from pptx import Presentation
+	prs = Presentation()
+	title_slide_layout = prs.slide_layouts[0]
+	slide = prs.slides.add_slide(title_slide_layout)
+	title = slide.shapes.title
+	subtitle = slide.placeholders[1]
+	title.text = "Hello, ASU!"
+	subtitle.text = "We are creating a interactive projector with presentation skills!"
+	prs.save("/home/pi/Projexa_Files/"+filename+'.pptx')
+	return question('Okay. I am gona '+ session.attributes['Action']+', a presentation with file name '+ session.attributes['filename']+ '. What Next ?' )
+
+@ask.intent("SpeechLearnIntent" , mapping={'word': 'Word'})
+
+def speech_round(word):
+	return question("please say the content you want to add in the next slide")
+
+@ask.intent("CreateSlideIntent" , mapping={'title': 'title', "bullet":"bullet"})
+
+def speech_round(title,bullet):
+        f = open("/home/pi/Projexa_Files/"+session.attributes['filename']+'.pptx', 'rb')
+	prs = Presentation(f)
+	bullet_slide_layout = prs.slide_layouts[1]
+	slide = prs.slides.add_slide(bullet_slide_layout)
+	shapes = slide.shapes
+	title_shape = shapes.title
+	body_shape = shapes.placeholders[1]
+	title_shape.text = title
+	tf = body_shape.text_frame
+	tf.text = bullet
+	prs.save("/home/pi/Projexa_Files/"+session.attributes['filename']+'.pptx')
+	f.close
+	return statement("done")
+
+
+
+    
 if __name__ == '__main__':
 
     app.run(debug=True)
